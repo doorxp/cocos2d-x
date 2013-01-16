@@ -86,19 +86,20 @@ namespace CocosDenshion
 			s_pEngine=0;
 		} 
 
-		for( SoundFxMap::iterator it = g_pSoundFxMap->begin(); it!=g_pSoundFxMap->end(); it++ ) {
-			if( it->second.data != 0 ) free( it->second.data ) ;
-		}
 		if( g_pSoundFxMap ) {
+		    for( SoundFxMap::iterator it = g_pSoundFxMap->begin(); it!=g_pSoundFxMap->end(); it++ )
+			    if( it->second.data != 0 ) free( it->second.data ) ;
+
 			delete g_pSoundFxMap ;
 			g_pSoundFxMap = 0 ;
 		}
 	}
 
-	void SimpleAudioEngine::setResource(const char* pszZipFileName)
+/*	void SimpleAudioEngine::setResource(const char* pszZipFileName)
 	{
 		// todo
 	}
+*/
 
     void SimpleAudioEngine::preloadBackgroundMusic(const char* pszFilePath)
 	{
