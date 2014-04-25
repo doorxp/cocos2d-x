@@ -23,124 +23,252 @@ THE SOFTWARE.
 ****************************************************************************/
 
 #include "CCGeometry.h"
+#include "ccMacros.h"
 
 // implementation of CCPoint
-namespace   cocos2d {
+NS_CC_BEGIN
 
-CCPoint::CCPoint(void)
+CCPoint::CCPoint(void) : x(0), y(0)
 {
-	x = 0;
-	y = 0;
 }
 
-CCPoint::CCPoint(float x, float y)
+CCPoint::CCPoint(float x, float y) : x(x), y(y)
 {
-	this->x = x;
-	this->y = y;
 }
 
-bool CCPoint::CCPointEqualToPoint(const CCPoint& point1, const CCPoint& point2)
+CCPoint::CCPoint(const CCPoint& other) : x(other.x), y(other.y)
 {
-	return ((point1.x == point2.x) && (point1.y == point2.y));
+}
+
+CCPoint::CCPoint(const CCSize& size) : x(size.width), y(size.height)
+{
+}
+
+CCPoint& CCPoint::operator= (const CCPoint& other)
+{
+    setPoint(other.x, other.y);
+    return *this;
+}
+
+CCPoint& CCPoint::operator= (const CCSize& size)
+{
+    setPoint(size.width, size.height);
+    return *this;
+}
+
+CCPoint CCPoint::operator+(const CCPoint& right) const
+{
+    return CCPoint(this->x + right.x, this->y + right.y);
+}
+
+CCPoint CCPoint::operator-(const CCPoint& right) const
+{
+    return CCPoint(this->x - right.x, this->y - right.y);
+}
+
+CCPoint CCPoint::operator-() const
+{
+	return CCPoint(-x, -y);
+}
+
+CCPoint CCPoint::operator*(float a) const
+{
+    return CCPoint(this->x * a, this->y * a);
+}
+
+CCPoint CCPoint::operator/(float a) const
+{
+	CCAssert(a, "CCPoint division by 0.");
+    return CCPoint(this->x / a, this->y / a);
+}
+
+void CCPoint::setPoint(float x, float y)
+{
+    this->x = x;
+    this->y = y;
+}
+
+bool CCPoint::equals(const CCPoint& target) const
+{
+    return (fabs(this->x - target.x) < FLT_EPSILON)
+        && (fabs(this->y - target.y) < FLT_EPSILON);
+}
+
+bool CCPoint::fuzzyEquals(const CCPoint& b, float var) const
+{
+    if(x - var <= b.x && b.x <= x + var)
+        if(y - var <= b.y && b.y <= y + var)
+            return true;
+    return false;
+}
+
+float CCPoint::getAngle(const CCPoint& other) const
+{
+    CCPoint a2 = normalize();
+    CCPoint b2 = other.normalize();
+    float angle = atan2f(a2.cross(b2), a2.dot(b2));
+    if( fabs(angle) < FLT_EPSILON ) return 0.f;
+    return angle;
+}
+
+CCPoint CCPoint::rotateByAngle(const CCPoint& pivot, float angle) const
+{
+    return pivot + (*this - pivot).rotate(CCPoint::forAngle(angle));
 }
 
 // implementation of CCSize
 
-CCSize::CCSize(void)
+CCSize::CCSize(void) : width(0), height(0)
 {
-	width = 0;
-	height = 0;
 }
 
-CCSize::CCSize(float width, float height)
+CCSize::CCSize(float width, float height) : width(width), height(height)
 {
-	this->width = width;
-	this->height = height;
 }
 
-bool CCSize::CCSizeEqualToSize(const CCSize& size1, const CCSize& size2)
+CCSize::CCSize(const CCSize& other) : width(other.width), height(other.height)
 {
-	return ((size1.width == size2.width) && (size1.height == size2.height));
+}
+
+CCSize::CCSize(const CCPoint& point) : width(point.x), height(point.y)
+{
+}
+
+CCSize& CCSize::operator= (const CCSize& other)
+{
+    setSize(other.width, other.height);
+    return *this;
+}
+
+CCSize& CCSize::operator= (const CCPoint& point)
+{
+    setSize(point.x, point.y);
+    return *this;
+}
+
+CCSize CCSize::operator+(const CCSize& right) const
+{
+    return CCSize(this->width + right.width, this->height + right.height);
+}
+
+CCSize CCSize::operator-(const CCSize& right) const
+{
+    return CCSize(this->width - right.width, this->height - right.height);
+}
+
+CCSize CCSize::operator*(float a) const
+{
+    return CCSize(this->width * a, this->height * a);
+}
+
+CCSize CCSize::operator/(float a) const
+{
+	CCAssert(a, "CCSize division by 0.");
+    return CCSize(this->width / a, this->height / a);
+}
+
+void CCSize::setSize(float width, float height)
+{
+    this->width = width;
+    this->height = height;
+}
+
+bool CCSize::equals(const CCSize& target) const
+{
+    return (fabs(this->width  - target.width)  < FLT_EPSILON)
+        && (fabs(this->height - target.height) < FLT_EPSILON);
 }
 
 // implementation of CCRect
 
 CCRect::CCRect(void)
 {
-	origin.x = 0;
-	origin.y = 0;
-
-	size.width = 0;
-	size.height = 0;
+    setRect(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 CCRect::CCRect(float x, float y, float width, float height)
 {
-	// Only support that, the width and height > 0
-	CC_ASSERT(width >= 0 && height >= 0);
-
-	origin.x = x;
-	origin.y = y;
-
-	size.width = width;
-	size.height = height;
+    setRect(x, y, width, height);
 }
 
-bool CCRect::CCRectEqualToRect(const CCRect& rect1, const CCRect& rect2)
+CCRect::CCRect(const CCRect& other)
 {
-	return (CCPoint::CCPointEqualToPoint(rect1.origin, rect2.origin)
-		&& CCSize::CCSizeEqualToSize(rect1.size, rect2.size));
+    setRect(other.origin.x, other.origin.y, other.size.width, other.size.height);
 }
 
-CGFloat CCRect::CCRectGetMaxX(const CCRect& rect)
+CCRect& CCRect::operator= (const CCRect& other)
 {
-	return rect.origin.x + rect.size.width;
+    setRect(other.origin.x, other.origin.y, other.size.width, other.size.height);
+    return *this;
 }
 
-CGFloat CCRect::CCRectGetMidX(const CCRect& rect)
+void CCRect::setRect(float x, float y, float width, float height)
 {
-	return (float)(rect.origin.x + rect.size.width / 2.0);
+    // CGRect can support width<0 or height<0
+    // CCAssert(width >= 0.0f && height >= 0.0f, "width and height of Rect must not less than 0.");
+
+    origin.x = x;
+    origin.y = y;
+
+    size.width = width;
+    size.height = height;
 }
 
-CGFloat CCRect::CCRectGetMinX(const CCRect& rect)
+bool CCRect::equals(const CCRect& rect) const
 {
-	return rect.origin.x;
+    return (origin.equals(rect.origin) && 
+            size.equals(rect.size));
 }
 
-CGFloat CCRect::CCRectGetMaxY(const CCRect& rect)
+float CCRect::getMaxX() const
 {
-	return rect.origin.y + rect.size.height;
+    return (float)(origin.x + size.width);
 }
 
-CGFloat CCRect::CCRectGetMidY(const CCRect& rect)
+float CCRect::getMidX() const
 {
-	return (float)(rect.origin.y + rect.size.height / 2.0);
+    return (float)(origin.x + size.width / 2.0);
 }
 
-CGFloat CCRect::CCRectGetMinY(const CCRect& rect)
+float CCRect::getMinX() const
 {
-	return rect.origin.y;
+    return origin.x;
 }
 
-bool CCRect::CCRectContainsPoint(const CCRect& rect, const CCPoint& point)
+float CCRect::getMaxY() const
+{
+    return origin.y + size.height;
+}
+
+float CCRect::getMidY() const
+{
+    return (float)(origin.y + size.height / 2.0);
+}
+
+float CCRect::getMinY() const
+{
+    return origin.y;
+}
+
+bool CCRect::containsPoint(const CCPoint& point) const
 {
     bool bRet = false;
 
-	if (point.x >= CCRectGetMinX(rect) && point.x <= CCRectGetMaxX(rect)
-		&& point.y >= CCRectGetMinY(rect) && point.y <= CCRectGetMaxY(rect))
-	{
-		bRet = true;
-	}
+    if (point.x >= getMinX() && point.x <= getMaxX()
+        && point.y >= getMinY() && point.y <= getMaxY())
+    {
+        bRet = true;
+    }
 
-	return bRet;
+    return bRet;
 }
 
-bool CCRect::CCRectIntersectsRect(const CCRect& rectA, const CCRect& rectB)
+bool CCRect::intersectsRect(const CCRect& rect) const
 {
-	return !(CCRectGetMaxX(rectA) < CCRectGetMinX(rectB)||
-			CCRectGetMaxX(rectB) < CCRectGetMinX(rectA)||
-			CCRectGetMaxY(rectA) < CCRectGetMinY(rectB)||
-			CCRectGetMaxY(rectB) < CCRectGetMinY(rectA));
+    return !(     getMaxX() < rect.getMinX() ||
+             rect.getMaxX() <      getMinX() ||
+                  getMaxY() < rect.getMinY() ||
+             rect.getMaxY() <      getMinY());
 }
 
-}//namespace   cocos2d {
+NS_CC_END

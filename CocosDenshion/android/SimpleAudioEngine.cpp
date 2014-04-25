@@ -25,142 +25,184 @@ THE SOFTWARE.
 #include "SimpleAudioEngine.h"
 #include "jni/SimpleAudioEngineJni.h"
 
-namespace CocosDenshion
+#include "cocos2d.h"
+#include <cstring>
+#include <android/log.h>
+#include <jni/JniHelper.h>
+#include <jni.h>
+
+#define  LOG_TAG     "Device Model"
+#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG,__VA_ARGS__)
+
+USING_NS_CC;
+/**********************************************************************************
+ *   jni
+ **********************************************************************************/
+#define  CLASS_NAME   "org/cocos2dx/lib/Cocos2dxHelper"
+#define  METHOD_NAME  "getDeviceModel"
+
+namespace CocosDenshion {
+
+static std::string getFullPathWithoutAssetsPrefix(const char* pszFilename)
 {
-	static SimpleAudioEngine *s_pEngine = 0;
+    // Changing file path to full path
+    std::string fullPath = CCFileUtils::sharedFileUtils()->fullPathForFilename(pszFilename);
+    // Removing `assets` since it isn't needed for the API of playing sound.
+    size_t pos = fullPath.find("assets/");
+    if (pos == 0)
+    {
+        fullPath = fullPath.substr(strlen("assets/"));
+    }
+    return fullPath;
+}
 
-	SimpleAudioEngine::SimpleAudioEngine()
-	{
+static SimpleAudioEngine *s_pEngine = 0;
 
-	}
+SimpleAudioEngine::SimpleAudioEngine()
+{
+    JniMethodInfo methodInfo;
+    jstring jstr;
+    if (JniHelper::getStaticMethodInfo(methodInfo, CLASS_NAME, METHOD_NAME, "()Ljava/lang/String;"))
+    {
+        jstr = (jstring)methodInfo.env->CallStaticObjectMethod(methodInfo.classID, methodInfo.methodID);
+    }
+    methodInfo.env->DeleteLocalRef(methodInfo.classID);
+    
+    const char* deviceModel = methodInfo.env->GetStringUTFChars(jstr, NULL);
+    
+    LOGD("SimpleAudioEngine() - deviceModel = %s", deviceModel);
+    
+    methodInfo.env->ReleaseStringUTFChars(jstr, deviceModel);
+    methodInfo.env->DeleteLocalRef(jstr);
+}
 
-	SimpleAudioEngine::~SimpleAudioEngine()
-	{
+SimpleAudioEngine::~SimpleAudioEngine()
+{
+}
 
-	}
+SimpleAudioEngine* SimpleAudioEngine::sharedEngine()
+{
+    if (! s_pEngine)
+    {
+        s_pEngine = new SimpleAudioEngine();
+    }
+    
+    return s_pEngine;
+}
 
-	SimpleAudioEngine* SimpleAudioEngine::sharedEngine()
-	{
-		if (! s_pEngine)
-		{
-			s_pEngine = new SimpleAudioEngine();
-		}
-        
-		return s_pEngine;
-	}
+void SimpleAudioEngine::end()
+{
+    endJNI();
+}
 
-	void SimpleAudioEngine::end()
-	{
-		endJNI();
-	}
+void SimpleAudioEngine::preloadBackgroundMusic(const char* pszFilePath)
+{
+    std::string fullPath = getFullPathWithoutAssetsPrefix(pszFilePath);
+    preloadBackgroundMusicJNI(fullPath.c_str());
+}
 
-	void SimpleAudioEngine::setResource(const char* pszZipFileName)
-	{
+void SimpleAudioEngine::playBackgroundMusic(const char* pszFilePath, bool bLoop)
+{
+    std::string fullPath = getFullPathWithoutAssetsPrefix(pszFilePath);
+    playBackgroundMusicJNI(fullPath.c_str(), bLoop);
+}
 
-	}
+void SimpleAudioEngine::stopBackgroundMusic(bool bReleaseData)
+{
+    stopBackgroundMusicJNI();
+}
 
-    void SimpleAudioEngine::preloadBackgroundMusic(const char* pszFilePath)
-	{
-        preloadBackgroundMusicJNI(pszFilePath);
-	}
+void SimpleAudioEngine::pauseBackgroundMusic()
+{
+    pauseBackgroundMusicJNI();
+}
 
-	void SimpleAudioEngine::playBackgroundMusic(const char* pszFilePath, bool bLoop)
-	{
-        playBackgroundMusicJNI(pszFilePath, bLoop);
-	}
+void SimpleAudioEngine::resumeBackgroundMusic()
+{
+    resumeBackgroundMusicJNI();
+}
 
-	void SimpleAudioEngine::stopBackgroundMusic(bool bReleaseData)
-	{
-		stopBackgroundMusicJNI();
-	}
+void SimpleAudioEngine::rewindBackgroundMusic()
+{
+    rewindBackgroundMusicJNI();
+}
 
-	void SimpleAudioEngine::pauseBackgroundMusic()
-	{
-		pauseBackgroundMusicJNI();
-	}
+bool SimpleAudioEngine::willPlayBackgroundMusic()
+{
+    return true;
+}
 
-	void SimpleAudioEngine::resumeBackgroundMusic()
-	{
-		resumeBackgroundMusicJNI();
-	} 
+bool SimpleAudioEngine::isBackgroundMusicPlaying()
+{
+    return isBackgroundMusicPlayingJNI();
+}
 
-	void SimpleAudioEngine::rewindBackgroundMusic()
-	{
-		rewindBackgroundMusicJNI();
-	}
+float SimpleAudioEngine::getBackgroundMusicVolume()
+{
+    return getBackgroundMusicVolumeJNI();
+}
 
-	bool SimpleAudioEngine::willPlayBackgroundMusic()
-	{
-		return true;
-	}
+void SimpleAudioEngine::setBackgroundMusicVolume(float volume)
+{
+    setBackgroundMusicVolumeJNI(volume);
+}
 
-	bool SimpleAudioEngine::isBackgroundMusicPlaying()
-	{
-		return isBackgroundMusicPlayingJNI();
-	}
+float SimpleAudioEngine::getEffectsVolume()
+{
+    return getEffectsVolumeJNI();
+}
 
-	float SimpleAudioEngine::getBackgroundMusicVolume()
-	{
-		return getBackgroundMusicVolumeJNI();
-	}
+void SimpleAudioEngine::setEffectsVolume(float volume)
+{
+    setEffectsVolumeJNI(volume);
+}
 
-	void SimpleAudioEngine::setBackgroundMusicVolume(float volume)
-	{
-		setBackgroundMusicVolumeJNI(volume);
-	}
+unsigned int SimpleAudioEngine::playEffect(const char* pszFilePath, bool bLoop)
+{
+    std::string fullPath = getFullPathWithoutAssetsPrefix(pszFilePath);
+    return playEffectJNI(fullPath.c_str(), bLoop);
+}
 
-	float SimpleAudioEngine::getEffectsVolume()
-	{
-		return getEffectsVolumeJNI();
-	}
+void SimpleAudioEngine::stopEffect(unsigned int nSoundId)
+{
+    stopEffectJNI(nSoundId);
+}
 
-	void SimpleAudioEngine::setEffectsVolume(float volume)
-	{
-		setEffectsVolumeJNI(volume);
-	}
+void SimpleAudioEngine::preloadEffect(const char* pszFilePath)
+{
+    std::string fullPath = getFullPathWithoutAssetsPrefix(pszFilePath);
+    preloadEffectJNI(fullPath.c_str());
+}
 
-	unsigned int SimpleAudioEngine::playEffect(const char* pszFilePath, bool bLoop)
-	{
-		return playEffectJNI(pszFilePath, bLoop);
-	}
+void SimpleAudioEngine::unloadEffect(const char* pszFilePath)
+{
+    std::string fullPath = getFullPathWithoutAssetsPrefix(pszFilePath);
+    unloadEffectJNI(fullPath.c_str());
+}
 
-	void SimpleAudioEngine::stopEffect(unsigned int nSoundId)
-	{
-		stopEffectJNI(nSoundId);
-	}
+void SimpleAudioEngine::pauseEffect(unsigned int nSoundId)
+{
+    pauseEffectJNI(nSoundId);
+}
 
-	void SimpleAudioEngine::preloadEffect(const char* pszFilePath)
-	{
-		preloadEffectJNI(pszFilePath);
-	}
+void SimpleAudioEngine::pauseAllEffects()
+{
+    pauseAllEffectsJNI();
+}
 
-	void SimpleAudioEngine::unloadEffect(const char* pszFilePath)
-	{
-		unloadEffectJNI(pszFilePath);
-	}
+void SimpleAudioEngine::resumeEffect(unsigned int nSoundId)
+{
+    resumeEffectJNI(nSoundId);
+}
 
-	void SimpleAudioEngine::pauseEffect(unsigned int nSoundId)
-	{
-		pauseEffectJNI(nSoundId);
-	}
+void SimpleAudioEngine::resumeAllEffects()
+{
+    resumeAllEffectsJNI();
+}
 
-	void SimpleAudioEngine::pauseAllEffects()
-	{
-		pauseAllEffectsJNI();
-	}
+void SimpleAudioEngine::stopAllEffects()
+{
+    stopAllEffectsJNI();
+}
 
-	void SimpleAudioEngine::resumeEffect(unsigned int nSoundId)
-	{
-		resumeEffectJNI(nSoundId);
-	}
-
-	void SimpleAudioEngine::resumeAllEffects()
-	{
-		resumeAllEffectsJNI();
-	}
-
-	void SimpleAudioEngine::stopAllEffects()
-	{
-		stopAllEffectsJNI();
-	}
 }
